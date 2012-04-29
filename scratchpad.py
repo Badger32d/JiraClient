@@ -1,6 +1,6 @@
 #!/usr/bin/evn python
 
-from jiraclient import jira
+import jiraclient
 
 
 
