@@ -18,8 +18,8 @@ class JQLError(Exception):
 class Auth():
     '''Currently only supports authentication details from environment variables
     need to add ability to set auth on the fly and add oauth support as well'''
-    def __init__(self, auth_type):
-        if auth_type == 'basic':
+    def __init__(self, auth_type, auth_value=None, authfile=None):
+        if auth_type == 'basic_env':
             try:
                 self.user = os.environ['JIRA_API_USER']
                 self.pwd = os.environ['JIRA_API_PASS']
@@ -29,7 +29,13 @@ class Auth():
             except Exception, e:
                 print e
                 raise
-
+        elif auth_type == 'basic_file':
+            import ConfigParser
+            config = ConfigParser.RawConfigParser()
+            config.read(authfile)
+            self.user = config.get('JIRA Auth', 'username')
+            self.pwd = config.get('JIRA Auth', 'password')
+            self.url = config.get('JIRA Auth', 'url')
 
 class Case(object):
     '''Case object'''
@@ -151,10 +157,17 @@ class Jira(object):
     def serverinfo(self):
         req_url = self.baseurl + 'serverInfo'
         result = self._jira_get(req_url)
-        return result
+        status = status = json.loads(result)
+        return status
 
-
-
+    def test_connection(self):
+        try:
+            status = self.serverinfo
+        except Exception:
+            print "Connection Failed"
+            raise ConnectionFailure
+        msg = '''{0} -- {1} -- version {2}'''.format(status['serverTitle'], status['baseUrl'], status['version'])
+        return msg
 
 if __name__ == "__main__":
     jira = Jira(Auth('basic'))

@@ -1,11 +1,13 @@
 #!/usr/bin/evn python
 
-import jiraclient
+from jiraclient import jira
 
 
 if __name__ == "__main__":
     #create jira object passing auth instance
-    jira = jira.Jira(jira.Auth('basic'))
+    jira = jira.Jira(jira.Auth('basic_file', authfile='./auth.cfg'))
+    test = jira.test_connection()
+    print test
 
     #ids = ['SYS-2']
     #cases = jira.get(ids)
