@@ -87,7 +87,10 @@ class Jira(object):
         while attempts < max_attempts:
             response = requests.get(req_url, auth=(self.auth.user, self.auth.pwd))
             if response.status_code == 200:
-                return response.content
+                try:
+                    return json.loads(str(response.content))
+                except:
+                    return response.content
             elif response.status_code == 401:
                 raise AuthenticationFailure
             else:
@@ -141,6 +144,11 @@ class Jira(object):
 
         return cases
 
+#    def create_case(self, )
+
+
+
+
     def add_comment(self, case_id, comment):
         req_url = self.baseurl + str(case_id) + "/comment"
         req_content = {"body": comment}
@@ -157,7 +165,6 @@ class Jira(object):
     def serverinfo(self):
         req_url = self.baseurl + 'serverInfo'
         result = self._jira_get(req_url)
-        status = status = json.loads(result)
         return status
 
     def test_connection(self):
