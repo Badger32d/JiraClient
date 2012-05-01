@@ -3,10 +3,6 @@
 import jiraclient
 
 
-
-
-
-
 if __name__ == "__main__":
     #create jira object passing auth instance
     jira = jira.Jira(jira.Auth('basic'))
