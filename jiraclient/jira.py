@@ -1,4 +1,35 @@
 #!/usr/bin/env python
+'''
+WeatherAlerts.nws
+*******************
+
+File Information
+==================
+
+**Project Home:**
+  http://github.com/zebpalmer/JiraClient
+
+**Original Author:**
+  Zeb Palmer http://www.zebpalmer.com
+
+**License:**
+  GPLv3 - full text included in LICENSE.txt
+
+
+License Notice:
+"""""""""""""""""
+This program is free software you can redistribute it and or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation, either version 3 of the License, or (at your option)
+any later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU General Public License for more details.  You should have received a copy of the GNU General Public
+License along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+----------------------------------------------------------------------------------------------------------------
+
+'''
+
+
 
 import os
 import time
@@ -7,12 +38,15 @@ import json
 
 
 class AuthenticationFailure(Exception):
+    '''Custom Exception class for Authentication failures'''
     pass
 
 class ConnectionFailure(Exception):
+    '''Custom Exception class for Connection failures'''
     pass
 
 class JQLError(Exception):
+    '''Custom Exception class for failed JQL queiries'''
     pass
 
 class Auth():
@@ -81,11 +115,11 @@ class Jira(object):
         self.auth = auth
         self.baseurl = '''{0}rest/api/2/'''.format(self.auth.url)
 
-    def _jira_get(self, req_url):
-        attempts = 0
-        max_attempts = 3
-        while attempts < max_attempts:
-            response = requests.get(req_url, auth=(self.auth.user, self.auth.pwd))
+    def _jira_get(self, target_url, max_attempts=3):
+        '''retrieves a url, attempts to parse the result to json'''
+        attempt = 0
+        while attempt < max_attempts:
+            response = requests.get(target_url, auth=(self.auth.user, self.auth.pwd))
             if response.status_code == 200:
                 try:
                     return json.loads(str(response.content))
@@ -98,13 +132,11 @@ class Jira(object):
         raise ConnectionFailure
 
 
-    def _jira_post(self, req_url, req_content):
+    def _jira_post(self, target_url, content):
+        '''Does a HTTP Post to the target url with the  '''
         headers = {'content-type': 'application/json'}
-        #attempts = 0
-        #max_attempts = 3
-        #while attempts < max_attempts:
-        payload = json.dumps(req_content)
-        response = requests.post(req_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
+        payload = json.dumps(content)
+        response = requests.post(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
         if response.status_code == 200:
             return response.content
         elif response.status_code == 400:
