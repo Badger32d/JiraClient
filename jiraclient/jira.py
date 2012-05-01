@@ -161,11 +161,7 @@ class Jira(object):
         return status
 
     def test_connection(self):
-        try:
-            status = self.serverinfo
-        except Exception:
-            print "Connection Failed"
-            raise ConnectionFailure
+        status = self.serverinfo
         msg = '''{0} -- {1} -- version {2}'''.format(status['serverTitle'], status['baseUrl'], status['version'])
         return msg
 
