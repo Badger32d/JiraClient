@@ -1,16 +1,11 @@
 #!/usr/bin/env python
 '''
-WeatherAlerts.nws
-*******************
 
 File Information
 ==================
 
 **Project Home:**
   http://github.com/zebpalmer/JiraClient
-
-**Original Author:**
-  Zeb Palmer http://www.zebpalmer.com
 
 **License:**
   GPLv3 - full text included in LICENSE.txt
