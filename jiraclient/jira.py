@@ -45,10 +45,12 @@ class JQLError(Exception):
     pass
 
 class Auth():
-    '''Currently only supports authentication details from environment variables
-    need to add ability to set auth on the fly and add oauth support as well'''
+    '''Supports auth from environment variables as well as a auth.cfg file
+    for auth.cfg, auth_type should be set to 'file'. authfile should be the
+    full path to the file. See included auth.cfg_example
+    '''
     def __init__(self, auth_type, authfile=None):
-        if auth_type == 'basic_env':
+        if auth_type == 'env':
             try:
                 self.user = os.environ['JIRA_API_USER']
                 self.pwd = os.environ['JIRA_API_PASS']
@@ -58,7 +60,7 @@ class Auth():
             except Exception, e:
                 print e
                 raise
-        elif auth_type == 'basic_file':
+        elif auth_type == 'file':
             import ConfigParser
             config = ConfigParser.RawConfigParser()
             config.read(authfile)
@@ -144,6 +146,7 @@ class Jira(object):
 
 
     def get(self, ids):
+        '''Get cases based on ids'''
         cases = []
         for key in ids:
             req_url = '''{0}{1}/{2}'''.format(self.baseurl, 'issue', key)
@@ -153,6 +156,7 @@ class Jira(object):
 
 
     def search(self, jql, startat=0, maxresults=100, fields=''):
+        '''Runs a Jira query from supplied jql. Caps results by default at 100. '''
         cases = []
         req_url = self.baseurl + 'search'
         req_content = { "jql": jql,
@@ -171,14 +175,16 @@ class Jira(object):
 
         return cases
 
-    def create_case(self):
-        #fixme: need to implement
-        pass
-
+    def create_case(self, case_dict):
+        '''Creates a case from a dict.'''
+        Currently doesn't do any validation against the 'createmeta' as each use case will be different'''
+        req_url = '''{0}issue'''.format(self.baseurl)
+        self._jira_post(req_url, case_dict)
 
 
 
     def add_comment(self, case_id, comment):
+        '''Append a comment to a case'''
         req_url = self.baseurl + str(case_id) + "/comment"
         req_content = {"body": comment}
         self._jira_post(req_url, req_content)
@@ -202,4 +208,4 @@ class Jira(object):
         return msg
 
 if __name__ == "__main__":
-    jira = Jira(Auth('basic'))
+    jira = Jira(Auth('basic_file', authfile='./auth.cfg'))
