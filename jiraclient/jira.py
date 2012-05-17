@@ -108,6 +108,7 @@ class Case(object):
 
 
 class Jira(object):
+    '''Main Jira Object'''
     def __init__(self, auth):
         self.auth = auth
         self.baseurl = '''{0}rest/api/2/'''.format(self.auth.url)
@@ -192,17 +193,20 @@ class Jira(object):
 
     @property
     def createmeta(self):
+        '''"create meta" is a dump of all possible field settings that can be set on case creation'''
         req_url = '''{0}issue/createmeta'''.format(self.baseurl)
         return self._jira_get(req_url)
 
 
     @property
     def serverinfo(self):
+        '''Get jira server info'''
         req_url = self.baseurl + 'serverInfo'
         result = self._jira_get(req_url)
         return result
 
     def test_connection(self):
+        '''Test connection to server, return status msg'''
         status = self.serverinfo
         msg = '''{0} -- {1} -- version {2}'''.format(status['serverTitle'], status['baseUrl'], status['version'])
         return msg
