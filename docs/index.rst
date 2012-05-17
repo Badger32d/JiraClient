@@ -1,22 +1,30 @@
-.. Python JiraClient documentation master file, created by
-   sphinx-quickstart on Thu May 17 12:12:09 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Python JiraClient Docs
+**********************
 
-Welcome to Python JiraClient's documentation!
-=============================================
+.. Note::
+   This documentation, like the JiraClient, is a work in progress.
 
-Contents:
+
+Welcome
+=============
+The Python JiraClient is a basic module to interact with a Jira server using the Jira REST APIv2. 
+
+
+Documentation Contents
+=======================
 
 .. toctree::
    :maxdepth: 2
 
-
+   about
+   use
+   devstatus
+   contact
+   changelog
+   module
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
-
