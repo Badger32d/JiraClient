@@ -177,7 +177,7 @@ class Jira(object):
         return cases
 
     def create_case(self, case_dict):
-        '''Creates a case from a dict.'''
+        '''Creates a case from a dict.
         Currently doesn't do any validation against the 'createmeta' as each use case will be different'''
         req_url = '''{0}issue'''.format(self.baseurl)
         self._jira_post(req_url, case_dict)
