@@ -18,5 +18,6 @@ Authentication
 ^^^^^^^^^^^^^^^
 
 The JiraClient will need to know your authentication details to access Jira. For now it supports basic authentication (oauth to be added later), you can specify the details as environment variables or via a config file. See auth.cfg_example included in the source. 
-
+- Envionment Variables - set three environment variables (JIRA_API_USER, JIRA_API_PASS, JIRA_API_URL)
+- Config File - see auth.cfg_example and configure with your details, then save as auth.cfg
 
