@@ -16,11 +16,7 @@ Documentation Contents
 .. toctree::
    :maxdepth: 2
 
-   about
    use
-   devstatus
-   contact
-   changelog
    module
 
 Indices and tables
