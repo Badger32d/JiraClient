@@ -1,0 +1,4 @@
+[JIRA Auth]
+username:someuser
+password:securepwd
+url:http://jira/
