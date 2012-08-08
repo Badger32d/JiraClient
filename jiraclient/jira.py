@@ -25,7 +25,6 @@ License along with this program. If not, see <http://www.gnu.org/licenses/>.
 '''
 
 
-
 import os
 import time
 import requests
@@ -36,13 +35,16 @@ class AuthenticationFailure(Exception):
     '''Custom Exception class for Authentication failures'''
     pass
 
+
 class ConnectionFailure(Exception):
     '''Custom Exception class for Connection failures'''
     pass
 
+
 class JQLError(Exception):
     '''Custom Exception class for failed JQL queiries'''
     pass
+
 
 class Auth():
     '''Supports auth from environment variables as well as a auth.cfg file
@@ -67,6 +69,7 @@ class Auth():
             self.user = config.get('JIRA Auth', 'username')
             self.pwd = config.get('JIRA Auth', 'password')
             self.url = config.get('JIRA Auth', 'url')
+
 
 class Case(object):
     '''Case object'''
@@ -93,7 +96,6 @@ class Case(object):
                 self.__dict__[key] = tmplist
             else:
                 self.__dict__[key] = case_json[key]
-
 
     def __getitem__(self, name):
         if name in self.__dict__:
@@ -129,7 +131,6 @@ class Jira(object):
                 time.sleep(1)
         raise ConnectionFailure
 
-
     def _jira_post(self, target_url, content):
         '''Does a HTTP Post to the target url with the  '''
         headers = {'content-type': 'application/json'}
@@ -145,7 +146,6 @@ class Jira(object):
             print response.status_code
             print response.content
 
-
     def get(self, ids):
         '''Get cases based on ids'''
         cases = []
@@ -155,15 +155,11 @@ class Jira(object):
             cases.append(Case(json.loads(str(results).strip())))
         return cases
 
-
     def search(self, jql, startat=0, maxresults=100, fields=''):
         '''Runs a Jira query from supplied jql. Caps results by default at 100. '''
         cases = []
         req_url = self.baseurl + 'search'
-        req_content = { "jql": jql,
-                        "startAt": startat,
-                        "maxResults": maxresults
-                        }
+        req_content = {"jql": jql, "startAt": startat, "maxResults": maxresults}
         if fields != '':
             req_content['fields'] = fields
         result = self._jira_post(req_url, req_content)
@@ -182,21 +178,17 @@ class Jira(object):
         req_url = '''{0}issue'''.format(self.baseurl)
         self._jira_post(req_url, case_dict)
 
-
-
     def add_comment(self, case_id, comment):
         '''Append a comment to a case'''
         req_url = self.baseurl + str(case_id) + "/comment"
         req_content = {"body": comment}
         self._jira_post(req_url, req_content)
 
-
     @property
     def createmeta(self):
         '''"create meta" is a dump of all possible field settings that can be set on case creation'''
         req_url = '''{0}issue/createmeta'''.format(self.baseurl)
         return self._jira_get(req_url)
-
 
     @property
     def serverinfo(self):
