@@ -137,16 +137,22 @@ class Jira(object):
                 time.sleep(1)
         raise ConnectionFailure
 
-    def _jira_post(self, target_url, content):
+    def _jira_postput(self, target_url, content, reqtype='post'):
         '''Does a HTTP Post to the target url'''
         headers = {'content-type': 'application/json'}
         payload = json.dumps(content)
-        response = requests.post(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
+        if reqtype == 'post':
+            response = requests.post(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
+        elif reqtype == 'put':
+            response = requests.put(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
+
         if response.status_code in (requests.codes.ok, requests.codes.created):
             return json.loads(response.content)
         else:
-            print response.content
-            raise JQLError(json.loads(response.content))
+            try:
+                raise JQLError(json.loads(response.content))
+            except Exception:
+                pass
 
     def get(self, ids):
         '''Get cases based on ids'''
@@ -164,7 +170,7 @@ class Jira(object):
         req_content = {"jql": jql, "startAt": startat, "maxResults": maxresults}
         if fields:
             req_content['fields'] = fields
-        results = self._jira_post(req_url, req_content)
+        results = self._jira_postput(req_url, req_content)
         if results["total"] > maxresults:
             return "Error: Results larger than max result"
         else:
@@ -177,13 +183,30 @@ class Jira(object):
         '''Creates a case from a dict.
         Currently doesn't do any validation against the 'createmeta' as each use case will be different'''
         req_url = '{0}/issue'.format(self.baseurl)
-        return self._jira_post(req_url, case_dict)
+        return self._jira_postput(req_url, case_dict)
 
-    def add_comment(self, case_id, comment, reporter):
+    def add_comment(self, case_id, comment):
         '''Append a comment to a case'''
         req_url = '{0}/issue/{1}/comment'.format(self.baseurl, str(case_id))
-        req_content = {"body": comment, 'author': {'name': reporter}}
-        self._jira_post(req_url, req_content)
+        req_content = {"body": comment}
+        return self._jira_postput(req_url, req_content)
+
+    def addwatcher(self, case_id, watcher):
+        req_url = '{0}/issue/{1}/watchers'.format(self.baseurl, str(case_id))
+        return self._jira_postput(req_url, watcher)
+
+    def updatedescription(self, case_id, description):
+        '''Edit case'''
+        req_url = '{0}/issue/{1}'.format(self.baseurl, str(case_id))
+        temp = {"update": {
+                        "description": [
+                            {
+                                "set": description
+                            }
+                        ],
+                    }
+                }
+        return self._jira_postput(req_url, temp, 'put')
 
     @property
     def createmeta(self):
@@ -205,7 +228,4 @@ class Jira(object):
         return msg
 
 if __name__ == "__main__":
-    jira = Jira(Auth('dict', auth_dict={'user': 'user', 'U$er': 'P@ssword', 'url': 'http://jira/'}))
-
-    print jira.add_comment('HAHA-1234', 'This is a test', 'user1')
-
+    jira = Jira(Auth('dict', auth_dict={'user': 'asdf', 'password': 'asdfawdf', 'url': 'http://jira/'}))
