@@ -1,31 +1,4 @@
 #!/usr/bin/env python
-'''
-
-File Information
-==================
-
-**Project Home:**
-  http://github.com/zebpalmer/JiraClient
-
-**License:**
-  GPLv3 - full text included in LICENSE.txt
-
-
-License Notice:
-"""""""""""""""""
-This program is free software you can redistribute it and or modify it under the terms of the GNU General Public
-License as published by the Free Software Foundation, either version 3 of the License, or (at your option)
-any later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.  You should have received a copy of the GNU General Public
-License along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-----------------------------------------------------------------------------------------------------------------
-
-'''
-
-
-
 import os
 import time
 import requests
@@ -36,20 +9,24 @@ class AuthenticationFailure(Exception):
     '''Custom Exception class for Authentication failures'''
     pass
 
+
 class ConnectionFailure(Exception):
     '''Custom Exception class for Connection failures'''
     pass
 
+
 class JQLError(Exception):
     '''Custom Exception class for failed JQL queiries'''
-    pass
+    def __init__(self, e):
+        self.__dict__ = e
+
 
 class Auth():
     '''Supports auth from environment variables as well as a auth.cfg file
     for auth.cfg, auth_type should be set to 'file'. authfile should be the
     full path to the file. See included auth.cfg_example
     '''
-    def __init__(self, auth_type, authfile=None):
+    def __init__(self, auth_type, authfile=None, auth_dict=None):
         if auth_type == 'env':
             try:
                 self.user = os.environ['JIRA_API_USER']
@@ -57,8 +34,7 @@ class Auth():
                 self.url = os.environ['JIRA_API_URL']
             except KeyError:
                 print "Auth Environment Variables Not Set"
-            except Exception, e:
-                print e
+            except Exception:
                 raise
         elif auth_type == 'file':
             import ConfigParser
@@ -67,6 +43,13 @@ class Auth():
             self.user = config.get('JIRA Auth', 'username')
             self.pwd = config.get('JIRA Auth', 'password')
             self.url = config.get('JIRA Auth', 'url')
+        elif auth_type == 'dict' and auth_dict is not None:
+            self.user = auth_dict['user']
+            self.pwd = auth_dict['password']
+            self.url = auth_dict['url']
+        else:
+            raise Exception("Auth Init error, must pass in auth type and file or dict as appropriate")
+
 
 class Case(object):
     '''Case object'''
@@ -94,7 +77,6 @@ class Case(object):
             else:
                 self.__dict__[key] = case_json[key]
 
-
     def __getitem__(self, name):
         if name in self.__dict__:
             return self.__dict__[name]
@@ -111,7 +93,7 @@ class Jira(object):
     '''Main Jira Object'''
     def __init__(self, auth):
         self.auth = auth
-        self.baseurl = '''{0}rest/api/2/'''.format(self.auth.url)
+        self.baseurl = '{0}rest/api/2'.format(self.auth.url)
 
     def _jira_get(self, target_url, max_attempts=3):
         '''retrieves a url, attempts to parse the result to json'''
@@ -129,49 +111,49 @@ class Jira(object):
                 time.sleep(1)
         raise ConnectionFailure
 
-
-    def _jira_post(self, target_url, content):
-        '''Does a HTTP Post to the target url with the  '''
+    def _jira_postput(self, target_url, content, reqtype='post'):
+        '''Does a HTTP Post to the target url'''
         headers = {'content-type': 'application/json'}
         payload = json.dumps(content)
-        response = requests.post(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
-        if response.status_code == 200:
-            return response.content
-        elif response.status_code == 400:
-            #fixme
-            print json.loads(response.content)['errorMessages'][0]
-            raise JQLError
-        else:
-            print response.status_code
-            print response.content
+        if reqtype == 'post':
+            response = requests.post(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
+        elif reqtype == 'put':
+            response = requests.put(target_url, auth=(self.auth.user, self.auth.pwd), data=payload, headers=headers)
 
+        if response.status_code in (requests.codes.ok, requests.codes.created):
+            return json.loads(response.content)
+        elif response.status_code == requests.codes.no_content:
+            return {}
+        else:
+            print response.content
+            try:
+                temp = json.loads(response.content)
+            except Exception:
+                temp = {'errors': response.content}
+            finally:
+                raise JQLError(temp)
 
     def get(self, ids):
         '''Get cases based on ids'''
         cases = []
         for key in ids:
-            req_url = '''{0}{1}/{2}'''.format(self.baseurl, 'issue', key)
+            req_url = '''{0}/{1}/{2}'''.format(self.baseurl, 'issue', key)
             results = self._jira_get(req_url)
-            cases.append(Case(json.loads(str(results).strip())))
+            cases.append(Case(case))
         return cases
 
-
-    def search(self, jql, startat=0, maxresults=100, fields=''):
+    def search(self, jql, startat=0, maxresults=100, fields=None):
         '''Runs a Jira query from supplied jql. Caps results by default at 100. '''
         cases = []
-        req_url = self.baseurl + 'search'
-        req_content = { "jql": jql,
-                        "startAt": startat,
-                        "maxResults": maxresults
-                        }
-        if fields != '':
+        req_url = '{0}/search'.format(self.baseurl)
+        req_content = {"jql": jql, "startAt": startat, "maxResults": maxresults}
+        if fields:
             req_content['fields'] = fields
-        result = self._jira_post(req_url, req_content)
-        content = json.loads(result)
-        if content["total"] > maxresults:
+        results = self._jira_postput(req_url, req_content)
+        if results["total"] > maxresults:
             return "Error: Results larger than max result"
         else:
-            for case in content['issues']:
+            for case in results['issues']:
                 cases.append(Case(case))
 
         return cases
@@ -179,29 +161,35 @@ class Jira(object):
     def create_case(self, case_dict):
         '''Creates a case from a dict.
         Currently doesn't do any validation against the 'createmeta' as each use case will be different'''
-        req_url = '''{0}issue'''.format(self.baseurl)
-        self._jira_post(req_url, case_dict)
-
-
+        req_url = '{0}/issue'.format(self.baseurl)
+        return self._jira_postput(req_url, case_dict)
 
     def add_comment(self, case_id, comment):
         '''Append a comment to a case'''
-        req_url = self.baseurl + str(case_id) + "/comment"
+        req_url = '{0}/issue/{1}/comment'.format(self.baseurl, str(case_id))
         req_content = {"body": comment}
-        self._jira_post(req_url, req_content)
+        return self._jira_postput(req_url, req_content)
 
+    def addwatcher(self, case_id, watcher):
+        req_url = '{0}/issue/{1}/watchers'.format(self.baseurl, str(case_id))
+        return self._jira_postput(req_url, watcher)
+
+    def updatedescription(self, case_id, description):
+        '''Edit case'''
+        req_url = '{0}/issue/{1}'.format(self.baseurl, str(case_id))
+        temp = {"update": {"description": [{"set": description}]}}
+        return self._jira_postput(req_url, temp, 'put')
 
     @property
     def createmeta(self):
         '''"create meta" is a dump of all possible field settings that can be set on case creation'''
-        req_url = '''{0}issue/createmeta'''.format(self.baseurl)
+        req_url = '{0}/issue/createmeta'.format(self.baseurl)
         return self._jira_get(req_url)
-
 
     @property
     def serverinfo(self):
         '''Get jira server info'''
-        req_url = self.baseurl + 'serverInfo'
+        req_url = '{0}/serverInfo'.format(self.baseurl)
         result = self._jira_get(req_url)
         return result
 
@@ -212,4 +200,4 @@ class Jira(object):
         return msg
 
 if __name__ == "__main__":
-    jira = Jira(Auth('basic_file', authfile='./auth.cfg'))
+    jira = Jira(Auth('dict', auth_dict={'user': 'asdf', 'password': 'asdfawdf', 'url': 'http://jira/'}))
