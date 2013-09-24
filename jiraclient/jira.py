@@ -166,7 +166,7 @@ class Jira(object):
         for key in ids:
             req_url = '''{0}/{1}/{2}'''.format(self.baseurl, 'issue', key)
             results = self._jira_get(req_url)
-            cases.append(Case(case))
+            cases.append(Case(results))
         return cases
 
     def search(self, jql, startat=0, maxresults=100, fields=None):
